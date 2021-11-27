@@ -2,6 +2,9 @@ import sys
 import os
 import cv2
 import shutil
+import matplotlib.pyplot as plt
+from tqdm import trange
+
 
 ''' Export frames from video to cache folder '''
 def export_images(filename, cache_path):
@@ -15,7 +18,7 @@ def export_images(filename, cache_path):
         ret, frame = cap.read()
         if ret == False:
             break
-        res = cv2.imwrite(os.path.join(cache_path, str(i) + '.jpg'),frame)
+        cv2.imwrite(os.path.join(cache_path, str(i) + '.jpg'),frame)
         i+=1
 
     cap.release()
@@ -41,14 +44,24 @@ def compare_frames(frame1, frame2):
     return sum(sum(b)) + sum(sum(g)) + sum(sum(r))
 
 
-def process_video(path_pre, path_post):
+def process_video(path_pre, path_post, duplicate_threshold=2500):
 
-    frame1 = cv2.imread(os.path.join(path_pre, '537.jpg'))
-    frame2 = cv2.imread(os.path.join(path_pre, '538.jpg'))
+    frame = 0
+    similarities = 0
+    num_frames = len(os.listdir(path_pre))
 
-    print(compare_frames(frame1, frame2))
+    for i in trange(num_frames-1):
+        frame1 = cv2.imread(os.path.join(path_pre, str(frame) + '.jpg'))
+        frame2 = cv2.imread(os.path.join(path_pre, str(frame + 1) + '.jpg'))
+        similarity = compare_frames(frame1, frame2)
 
+        if similarity < duplicate_threshold:
+            similarities += 1
 
+        frame += 1
+
+    print(similarities)
+    
 
 ''' Deletes images in the cache '''
 def delete_cache(cache_path):
@@ -60,6 +73,7 @@ def delete_cache(cache_path):
 def main(args):
 
     filename = args[0]
+    duplicate_threshold = 2500
 
     # Create cache folder/subfolders if not existing
     cache_path = os.getenv('APPDATA') + "\srgan-upscaler\cache"
@@ -74,7 +88,7 @@ def main(args):
 
     ### STARTING PROCESS ### 
     # export_images(filename, cache_path_pre)
-    process_video(cache_path_pre, cache_path_post)
+    process_video(cache_path_pre, cache_path_post, duplicate_threshold)
     # delete_cache(cache_path)
 
 if __name__ == '__main__':
